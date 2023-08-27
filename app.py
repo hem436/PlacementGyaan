@@ -124,10 +124,10 @@ def assessment():
         return
 
 
-@app.route('/assess')
+@app.route('/create_assessment')
 def assess():
     if request.method == 'GET':
-        return render_template('assess.html')
+        return render_template('create_assessment.html')
 
 
 class Login_api(Resource):

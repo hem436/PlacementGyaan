@@ -45,171 +45,189 @@
             <button class="btn btn-info" onclick="window.location.href='/assessments'">Assessments</button>
             <button class="btn btn-outline-dark" onclick="window.location.href='/'">Search and Connect</button>
         </div>
-        <!-- <div class="container my-5 p-5 border">
-            
-            <div class="card" style="box-sizing: border-box; border: 1px solid black; border-radius: 15px;">
-                <div class="card-body ">
-                    
-                </div>
-            </div>
-        </div> -->
+
     </div>
     <div class="d-flex">
     <div class="btn-group-vertical position-fixed mt-3">
         <button  id="addQuestion" class=""><img class="img" src="/static/img/add.svg" width="50px"  alt="add"></button>
-        <button class=""><img src="/static/img/delete.svg" width="50px" alt="delete"></button>
-        <button class=""><img src="/static/img/back.svg" width="50px" style="transform: rotate(90deg);" alt="move up"></button>
-        <button class=""><img src="/static/img/back.svg" width="50px" style="transform: rotate(-90deg);" alt="move down"></button>
+        <button id="deleteQuestion"><img src="/static/img/delete.svg" width="50px" alt="delete"></button>
+        <!-- <button class=""><img src="/static/img/back.svg" width="50px" style="transform: rotate(90deg);" alt="move up"></button>
+        <button class=""><img src="/static/img/back.svg" width="50px" style="transform: rotate(-90deg);" alt="move down"></button> -->
+        <button type="submit" class="btn btn-success mt-3" form="formBuilder">Create</button>
     </div>
     <div class="container mt-3">
         <div class="header">
-            <input class="form-control text-center" type="text" id="assess_title" name="assess_title" placeholder="Assessment title">
-            
+            <input class="form-control text-center" type="text" id="assess_title" name="assess_title" placeholder="Assessment title" required>     
         </div>
         <form id="formBuilder">
             <div id="questionsContainer" class="mt-4"></div>
-            <button type="submit" class="btn btn-success mt-3">Create</button>
+            
         </form>
     </div>
 </div>
-    <script>
-        let questionCounter = 0;
 
+
+<script>
+    let questionCounter = 0;
+    
         function addQuestion() {
             questionCounter++;
-
+    
             const questionDiv = document.createElement('div');
             questionDiv.classList.add('card', 'mt-3');
+            questionDiv.id = `question${questionCounter}`;
             questionDiv.innerHTML = `
                 <div class="card-header">
+                    <div class="d-flex">
                     <h5>Question ${questionCounter}</h5>
-                    <button class="btn btn-danger btn-sm deleteQuestion">Delete</button>
+                    <input type="integer" class="form-control-sm ms-auto" id="questionMarks${questionCounter}" placeholder="Question Marks" required>
+                    </div>
                     <div class="form-group">
                         <label for="questionType${questionCounter}" >Question Type</label>
                         <select class="form-control qType" id="questionType${questionCounter}" required>
-                            <option value="choice">Choice</option>
-                            <option value="multiSelect">Multi-Select</option>
-                            <option value="text" selected>Text</option>
+                        <option value="choice">Choice</option>
+                        <option value="multiSelect">Multi-Select</option>
+                        <option value="text" selected>Text</option>
                         </select>
                     </div>
                 </div>
                 <div class="card-body">
-                    <div class="form-group">
+                    <div class="form-group questionForm">
                         <label for="questionText${questionCounter}">Question Text</label>
                         <input type="text" class="form-control" id="questionText${questionCounter}" required>
                     </div>
                     
-                    <div class="form-group" id="addOption">
+                    <div class="form-group actionButtons">
+                    <label for="answer${questionCounter}">Answer Text</label><input type="text" class="form-control" id="answer${questionCounter}" required>
                     </div>
-                    <div class="optionsContainer"></div>
-                </div>
-            `;
+                    <div class="optionsContainer" id="optionsContainer${questionCounter}"></div>
+                    </div>
+                    `;
 
-            document.querySelector('#questionsContainer').appendChild(questionDiv);
+        document.querySelector('#questionsContainer').appendChild(questionDiv);
+    }
+
+    function deleteQuestion(event) {
+        console.log(`question${questionCounter}`)
+        document.getElementById(`question${questionCounter}`).remove();
+
+        questionCounter--;
+    }
+
+    function addOption(event) {
+        event.preventDefault();
+        const optionsContainer = event.target.closest('.card-body').querySelector('.optionsContainer');
+        const optionInput = document.createElement('input');
+        optionInput.type = 'text';
+        optionInput.classList.add('form-control');
+        optionInput.placeholder = 'Option text';
+
+        const deleteOptionButton = document.createElement('button');
+        deleteOptionButton.classList.add('btn', 'btn-danger', 'btn-sm', 'deleteOption');
+        deleteOptionButton.textContent = 'Delete';
+
+        const markAsAnswer = document.createElement('input');
+        markAsAnswer.type = 'checkbox';
+        markAsAnswer.classList.add('checkbox','markAsAnswer');
+        markAsAnswer.title="Mark as Answer"
+
+        const optionWrapper = document.createElement('div');
+        optionWrapper.classList.add('d-flex', 'align-items-center');
+        optionWrapper.appendChild(markAsAnswer);
+        optionWrapper.appendChild(optionInput);
+        optionWrapper.appendChild(deleteOptionButton);
+        
+
+        optionsContainer.appendChild(optionWrapper);
+    }
+
+    function deleteOption(event) {
+        event.target.closest('.d-flex').remove();
+    }
+
+    function markAsAnswer(event){
+        console.log(event.target)
+        
+    }
+
+    function qType(event) {
+        event.preventDefault();
+        
+        console.log(event.target);
+        const actionButtons = event.target.closest('.card').querySelector('.actionButtons');
+        const questionType = event.target.closest('.card-header').querySelector(`.qType`).value;
+        console.log(questionType);
+        if (questionType === 'choice' || questionType === 'multiSelect') {
+            actionButtons.innerHTML= "<button class='btn btn-primary btn-sm addOption mt-1'>Add Option</button>";
+        } else {
+            const optionsContainer = document.getElementById(`optionsContainer${questionCounter}`);
+            optionsContainer.innerHTML = '';
+            actionButtons.innerHTML = '<label for="answer${questionCounter}">Answer Text</label><input type="text" class="form-control" id="answer${questionCounter}" required>';
         }
+    }
 
-        function deleteQuestion(event) {
-            event.target.closest('.card').remove();
+    document.getElementById('addQuestion').addEventListener('click', addQuestion);
+    document.getElementById('deleteQuestion').addEventListener('click', deleteQuestion);
+
+    document.addEventListener('click', function (event) {
+        if (event.target.classList.contains('addOption')) {
+            addOption(event);
+        } else if (event.target.classList.contains('deleteOption')) {
+            deleteOption(event);
+        } else if (event.target.classList.contains('markAsAnswer')) {
+            markAsAnswer(event);
         }
+    });
 
-        function addOption(event) {
-            event.preventDefault();
-            const optionsContainer = event.target.closest('.card-body').querySelector('.optionsContainer');
-            const optionInput = document.createElement('input');
-            optionInput.type = 'text';
-            optionInput.classList.add('form-control');
-            optionInput.placeholder = 'Option text';
-
-            const deleteOptionButton = document.createElement('button');
-            deleteOptionButton.classList.add('btn', 'btn-danger', 'btn-sm', 'deleteOption');
-            deleteOptionButton.textContent = 'Delete';
-
-            const optionWrapper = document.createElement('div');
-            optionWrapper.classList.add('d-flex', 'align-items-center');
-            optionWrapper.appendChild(optionInput);
-            optionWrapper.appendChild(deleteOptionButton);
-
-            optionsContainer.appendChild(optionWrapper);
+    document.addEventListener('input', function (event) {
+        if (event.target.classList.contains('qType')) {
+            qType(event);
         }
+    });
 
-        function deleteOption(event) {
-            event.target.closest('.d-flex').remove();
-        }
 
-        function qType(event) {
-            event.preventDefault();
-            const addOption = event.target.closest('.card').querySelector('#addOption');
-            const questionType = event.target.closest('.card-header').querySelector(`#questionType${questionCounter}`).value;
-            console.log(questionType);
-            if (questionType === 'choice' || questionType === 'multiSelect') {
-                addOption.innerHTML= "<button class='btn btn-primary btn-sm addOption mt-1'>Add Option</button>";
-            } else {
-                addOption.innerHTML = '';
-            }
-        }
+    document.getElementById('formBuilder').addEventListener('submit', function (event) {
+        event.preventDefault();
 
-        document.getElementById('addQuestion').addEventListener('click', addQuestion);
+        const previewWindow = window.open('', '_blank');
+        const previewDocument = previewWindow.document;
 
-        document.addEventListener('click', function (event) {
-            if (event.target.classList.contains('deleteQuestion')) {
-                deleteQuestion(event);
-            } else if (event.target.classList.contains('addOption')) {
-                addOption(event);
-            } else if (event.target.classList.contains('deleteOption')) {
-                deleteOption(event);
-            }
+        const previewContainer = previewDocument.createElement('div');
+        previewContainer.innerHTML = `<h1>${document.querySelector('#assess_title').value}</h1>`;
+
+        const questions = document.querySelectorAll('.card');
+
+        questions.forEach((question, index) => {
+            const questionText = question.querySelector(`#questionText${index + 1}`).value;
+            const questionType = question.querySelector(`#questionType${index + 1}`).value;
+            const options = question.querySelectorAll('.optionsContainer input');
+
+            const previewQuestion = previewDocument.createElement('div');
+            previewQuestion.innerHTML = `
+            <h4>${index + 1}. ${questionText}</h4>
+            ${questionType === 'choice' 
+                    ? `<div class="form-check">
+                            ${Array.from(options).map(option => `<input class="form-check-input" type="radio" name="flexRadioDefault" id="option.id" value=${option.value}>`).join('')}
+                        </div>`
+                    : ''
+                }
+            ${questionType === 'multiSelect'
+                    ? `<div class="form-check">
+                            ${Array.from(options).map(option => `<input class="form-check-input" type="checkbox" name="flexRadioDefault" id="option.id" value=${option.value}>`).join('')}
+                        </div>`
+                    : ''
+                }
+            ${questionType === 'text'
+                    ? '<input type="text" class="form-control">'
+                    : ''
+                }
+        `;
+            previewContainer.appendChild(previewQuestion);
         });
 
-        document.addEventListener('input', function (event) {
-            if (event.target.classList.contains('qType')) {
-                qType(event);
-            }
-        });
-
-
-        document.getElementById('formBuilder').addEventListener('submit', function (event) {
-            event.preventDefault();
-
-            const previewWindow = window.open('', '_blank');
-            const previewDocument = previewWindow.document;
-
-            const previewContainer = previewDocument.createElement('div');
-            previewContainer.innerHTML = `<h1>${document.querySelector('#assess_title').value}</h1>`;
-
-            const questions = document.querySelectorAll('.card');
-
-            questions.forEach((question, index) => {
-                const questionText = question.querySelector(`#questionText${index + 1}`).value;
-                const questionType = question.querySelector(`#questionType${index + 1}`).value;
-                const options = question.querySelectorAll('.optionsContainer input');
-
-                const previewQuestion = previewDocument.createElement('div');
-                previewQuestion.innerHTML = `
-                <h4>${index + 1}. ${questionText}</h4>
-                ${questionType === 'choice' 
-                        ? `<div class="form-check">
-                                ${Array.from(options).map(option => `<input class="form-check-input" type="radio" name="flexRadioDefault" id="option.id" value=${option.value}>`).join('')}
-                            </div>`
-                        : ''
-                    }
-                ${questionType === 'multiSelect'
-                        ? `<div class="form-check">
-                                ${Array.from(options).map(option => `<input class="form-check-input" type="checkbox" name="flexRadioDefault" id="option.id" value=${option.value}>`).join('')}
-                            </div>`
-                        : ''
-                    }
-                ${questionType === 'text'
-                        ? '<input type="text" class="form-control">'
-                        : ''
-                    }
-            `;
-
-                previewContainer.appendChild(previewQuestion);
-            });
-
-            previewDocument.body.appendChild(previewContainer);
-        });
-    </script>
+        previewDocument.body.appendChild(previewContainer);
+    });
+</script>
 </body>
 
 </html>

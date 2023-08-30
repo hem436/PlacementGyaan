@@ -43,70 +43,22 @@ def check_username(name):
         return False
     return True
 
-import nltk
-from nltk.corpus import stopwords
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
-
-nltk.download('punkt')
-nltk.download('stopwords')
-
-# Sample correct answer and student answer
-correct_answer = "The capital of France is Paris."
-student_answer = "Germany is not the capital of Mexico."
-
-# Preprocess the text data
-def preprocess_text(text):
-    words = nltk.word_tokenize(text.lower())
-    words = [word for word in words if word.isalnum() and word not in stopwords.words('english')]
-    return ' '.join(words)
-
-def evaluateQ(correct_answer, student_answer):
-    # Preprocess the text data
-    preprocessed_correct = preprocess_text(correct_answer)
-    preprocessed_student = preprocess_text(student_answer)
-
-    # Vectorize the text using TF-IDF
-    vectorizer = TfidfVectorizer()
-    tfidf_matrix = vectorizer.fit_transform([preprocessed_correct, preprocessed_student])
-
-    # Calculate cosine similarity
-    cosine_sim = cosine_similarity(tfidf_matrix[0], tfidf_matrix[1])[0][0]
-
-    # Print the cosine similarity
-    print("Cosine Similarity:", cosine_sim)
-    
-    if cosine_sim > 0.5:
-        return True
-    else:
-        return False
-print(evaluateQ(correct_answer, student_answer))
-
-
-
-@app.route('/')
-def index():
+@app.route('/',methods=['GET'])
+def base():
     if request.method == 'GET':
-        if current_user.is_authenticated:
-            return render_template('index.html')
-        else:
-            return render_template('login.html')
+        return render_template('login.html')
 
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    if request.method == 'GET':
-        return render_template('login.html')
-    else:
-        print(request.form)
+    if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
-        user = Users.query.filter_by(name=username, password=password).first()
+        user = Users.query.filter_by(username=username, password=password).first()
         if user:
-            login_user(user)
-            return redirect('/')
+            return redirect(f'/dashboard/{user.user_id}')
         else:
-            return render_template('login.html', error="Invalid username or password")
+            return render_template('login.html',error="Invalid username or password")
 
 
 @app.route('/signup', methods=['GET', 'POST'])
@@ -114,19 +66,43 @@ def signup():
     if request.method == 'GET':
         return render_template('signup.html')
     else:
+        print(request.form)
         username = request.form['username']
-        password = request.form['password']
+        password1 = request.form['password1']
+        password2 = request.form['password2']
+        if request.form['secret']:
+            secret_key = request.form['secret']
+            if secret_key == 'admin':
+                user_type="admin"
+            else:
+                render_template('signup.html',error="Invalid secret key")
+        else:
+            user_type="user"
         if check_username(username) == False:
-            return render_template('signup.html')
-        new_user = Users(name=username, password=password)
+            return render_template('signup.html',error='Username already in user')
+        if password1 != password2:
+            return render_template('signup.html',error='Password not matching')
+        new_user = Users(username=username,name=request.form['name'],education=request.form['education'],
+                            work=request.form['work'],about=request.form['about'],password=request.form['password1'],
+                            user_type=user_type)
         db.session.add(new_user)
         db.session.commit()
         return redirect('/')
 
-
-@app.route('/dashboard')
-def dashboard():
-    return render_template('dashboard.html')
+@app.route('/dashboard/<int:user_id>')
+def dashboard(user_id):
+    user = Users.query.get(user_id)
+    user_output_fields = {
+                        'username':user.username,
+                        'user_id': user.user_id,
+                        'name': user.name,
+                        'img': user.image,
+                        'education': user.education,
+                        'work': user.work,
+                        'about': user.about,
+                        'user_type': user.user_type
+                    }
+    return render_template('dashboard.html',myprofile=user_output_fields)
 
 
 @app.route('/posts')
@@ -201,10 +177,10 @@ api.add_resource(Login_api, '/login')
 
 class Users_api(Resource):
     def get(self):
-        try:
-            user_id = int(request.args.get('user_id'))
-            if user_id != 0:
-                user = Users.query.get(user_id)
+        # try:
+            user_id = request.args.get('user_id')
+            if user_id != "0" and user_id != None:
+                user = Users.query.get(int(user_id))
                 if user:
                     user_output_fields = {
                         'user_id': user.user_id,
@@ -218,7 +194,7 @@ class Users_api(Resource):
                     return jsonify(user_output_fields)
                 else:
                     return "no user exit", 405
-            elif user_id == 0:
+            elif user_id == "0":
                 users = Users.query.all()
                 if users:
                     users_output_fields = []
@@ -237,8 +213,28 @@ class Users_api(Resource):
                 else:
                     return "no user exit", 405
             else:
-                return "invalid user id", 404
-        except:
+                search= request.args.get('search')
+                if search == None or search == '':
+                    return "invalid request", 400
+                else:
+                    users = Users.query.filter(Users.name.like('%'+search+'%')).all()
+                    if users:
+                        users_output_fields = []
+                        for user in users:
+                            user_output_fields = {
+                                'user_id': user.user_id,
+                                'name': user.name,
+                                'img': user.img,
+                                'education': user.education,
+                                'work': user.work,
+                                'about': user.about,
+                                'user_type': user.user_type
+                            }
+                            users_output_fields.append(user_output_fields)
+                        return jsonify(users_output_fields)
+                    else:
+                        return "no user exit", 405
+        # except:
             return "server error", 500
 
     def post(self):
